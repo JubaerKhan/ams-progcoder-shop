@@ -1,0 +1,264 @@
+namespace Common.Constants;
+
+public sealed class MessageCode
+{
+    #region Fields, Properties and Indexers
+
+    public const string BadRequest = "BAD_REQUEST";
+
+    public const string DecisionFlowIllegal = "DECISION_FLOW_ILLEGAL";
+
+    public const string InvalidEmailAddress = "INVALID_EMAIL_ADDRESS";
+
+    public const string InvalidPhoneNumber = "INVALID_PHONE_NUMBER";
+
+    public const string Max255Characters = "MAX_255_CHARACTERS";
+
+    public const string Max500Characters = "MAX_500_CHARACTERS";
+
+    public const string Max100Characters = "MAX_100_CHARACTERS";
+
+    public const string Max50Characters = "MAX_50_CHARACTERS";
+
+    public const string Max20Characters = "MAX_20_CHARACTERS";
+
+    public const string Min5Characters = "MIN_5_CHARACTERS";
+
+    public const string CreateSuccess = "CREATE_SUCCESS";
+
+    public const string GetSuccess = "GET_SUCCESS";
+
+    public const string UpdateSuccess = "UPDATE_SUCCESS";
+
+    public const string DeleteSuccess = "DELETE_SUCCESS";
+
+    public const string CreateFailure = "CREATE_FAILURE";
+
+    public const string GetFailure = "GET_FAILURE";
+
+    public const string UpdateFailure = "UPDATE_FAILURE";
+
+    public const string DeleteFailure = "DELETE_FAILURE";
+
+    public const string AccessDenied = "ACCESS_DENIED";
+
+    public const string ResourceNotFound = "RESOURCE_NOT_FOUND";
+
+    public const string ResourceNotExists = "RESOURCE_NOT_EXISTS";
+
+    public const string UnknownError = "UNKNOWN_ERROR";
+
+    public const string AgentNameIsRequired = "AGENT_NAME_IS_REQUIRED";
+
+    public const string EmailIsRequired = "EMAIL_IS_REQUIRED";
+
+    public const string UserNameIsRequired = "USERNAME_IS_REQUIRED";
+
+    public const string FirstNameIsRequired = "FIRST_NAME_IS_REQUIRED";
+
+    public const string LastNameIsRequired = "LAST_NAME_IS_REQUIRED";
+
+    public const string IdIsRequired = "ID_IS_REQUIRED";
+
+    public const string PasswordIsRequired = "PASSWORD_IS_REQUIRED";
+
+    public const string ConfirmPasswordIsRequired = "CONFIRM_PASSWORD_IS_REQUIRED";
+
+    public const string ConfirmPasswordIsNotMatch = "CONFIRM_PASSWORD_IS_NOT_MATCH";
+
+    public const string UserNotFound = "USER_NOT_FOUND";
+
+    public const string UserAlreadyExists = "USER_ALREADY_EXISTS";
+
+    public const string ActionIsRequired = "ACTION_IS_REQUIRED";
+
+    public const string Unauthorized = "UNAUTHORIZED";
+
+    public const string NotFound = "NOT_FOUND";
+
+    public const string EmailAlreadyExists = "EMAIL_ALREADY_EXISTS";
+
+    public const string UserNameAlreadyExists = "USERNAME_ALREADY_EXISTS";
+
+    public const string RequestUserIdIsRequired = "REQUEST_USER_ID_IS_REQUIRED";
+
+    public const string UserIdIsRequired = "USER_ID_IS_REQUIRED";
+
+    public const string ChanelIsRequired = "CHANEL_IS_REQUIRED";
+
+    public const string AddressIsRequired = "ADDRESS_IS_REQUIRED";
+
+    public const string SubjectIsRequired = "SUBJECT_IS_REQUIRED";
+
+    public const string BodyIsRequired = "BODY_IS_REQUIRED";
+
+    public const string ProductNameIsRequired = "PRODUCT_NAME_IS_REQUIRED";
+
+    public const string SkuIsRequired = "SKU_IS_REQUIRED";
+
+    public const string ShortDescriptionIsRequired = "SHORT_DESCRIPTION_IS_REQUIRED";
+
+    public const string LongDescriptionIsRequired = "LONG_DESCRIPTION_IS_REQUIRED";
+
+    public const string PriceIsRequired = "PRICE_IS_REQUIRED";
+
+    public const string CategoryIsNotExists = "CATEGORY_IS_NOT_EXISTS";
+
+    public const string CurrencyIsRequired = "CURRENCY_IS_REQUIRED";
+
+    public const string MoneyCannotBeNegative = "MONEY_CANNOT_BE_NEGATIVE";
+
+    public const string MaxDiscountAmountCannotBeNegative = "MAX_DISCOUNT_AMOUNT_CANNOT_BE_NEGATIVE";
+
+    public const string ProductIdIsRequired = "PRODUCT_ID_IS_REQUIRED";
+
+    public const string ProductIsNotFound = "PRODUCT_IS_NOT_FOUND";
+
+    public const string ProductIsNotExists = "PRODUCT_IS_NOT_EXISTS";
+
+    public const string StatusIsInvalid = "STATUS_IS_INVALID";
+
+    public const string QuantityCannotBeNegative = "QUANTITY_CANNOT_BE_NEGATIVE";
+
+    public const string QuantityIsRequired = "QUANTITY_IS_REQUIRED";
+
+    public const string LocationIsRequired = "LOCATION_IS_REQUIRED";
+
+    public const string InsufficientStock = "INSUFFICIENT_STOCK";
+
+    public const string InventoryChangeTypeIsRequired = "INVENTORY_CHANGE_TYPE_IS_REQUIRED";
+
+    public const string SourceIsRequired = "SOURCE_IS_REQUIRED";
+
+    public const string OutOfRange = "OUT_OF_RANGE";
+
+    public const string NotEnoughAvailable = "NOT_ENOUGH_AVAILABLE";
+
+    public const string ReleaseExceedsReserved = "RELEASE_EXCEEDS_RESERVED";
+
+    public const string CommitExceedsReserved = "COMMIT_EXCEEDS_RESERVED";
+
+    public const string CommitExceedsQuantity = "COMMIT_EXCEEDS_QUANTITY";
+
+    public const string InvalidReservationAmount = "INVALID_RESERVATION_AMOUNT";
+
+    public const string ReservationNotFound = "RESERVATION_NOT_FOUND";
+
+    public const string ReservationAlreadyCommitted = "RESERVATION_ALREADY_COMMITTED";
+
+    public const string ReservationExpired = "RESERVATION_EXPIRED";
+
+    public const string CannotCommitNonPendingReservation = "CANNOT_COMMIT_NON_PENDING_RESERVATION";
+
+    public const string InventoryItemIdIsRequired = "INVENTORY_ITEM_ID_IS_REQUIRED";
+
+    public const string StatusIsRequired = "STATUS_IS_REQUIRED";
+
+    public const string NameIsRequired = "NAME_IS_REQUIRED";
+
+    public const string CustomerNameIsRequired = "CUSTOMER_NAME_IS_REQUIRED";
+
+    public const string PhoneNumberIsRequired = "PHONE_NUMBER_IS_REQUIRED";
+
+    public const string AddressLineIsRequired = "ADDRESS_LINE_IS_REQUIRED";
+
+    public const string CountryIsRequired = "COUNTRY_IS_REQUIRED";
+
+    public const string StateOrProvinceIsRequired = "STATE_OR_PROVINCE_IS_REQUIRED";
+
+    public const string PostalCodeIsRequired = "POSTAL_CODE_IS_REQUIRED";
+
+    public const string SubdivisionIsRequired = "SUBDIVISION_IS_REQUIRED";
+
+    public const string CityIsRequired = "CITY_IS_REQUIRED";
+
+    public const string OrderItemsIsRequired = "ORDER_ITEMS_IS_REQUIRED";
+
+    public const string ProductIsRequired = "PRODUCT_IS_REQUIRED";
+
+    public const string OrderIdIsRequired = "ORDER_ID_IS_REQUIRED";
+
+    public const string BasketIsRequired = "BASKET_IS_REQUIRED";
+
+    public const string CouponCodeIsRequired = "COUPON_CODE_IS_REQUIRED";
+
+    public const string DescriptionIsRequired = "DESCRIPTION_IS_REQUIRED";
+
+    public const string ValidFromIsRequired = "VALID_FROM_IS_REQUIRED";
+
+    public const string ValidToIsRequired = "VALID_TO_IS_REQUIRED";
+
+    public const string ValidToInvalid = "VALID_TO_INVALID";
+
+    public const string CouponCodeIsExists = "COUPON_CODE_IS_EXISTS";
+
+    public const string CouponCodeIsNotExistsOrExpired = "COUPON_CODE_IS_NOT_EXISTS_OR_EXPIRED";
+
+    public const string EventIdIsRequired = "EVENT_ID_IS_REQUIRED";
+
+    public const string TemplateKeyIsRequired = "TEMPLATE_KEY_IS_REQUIRED";
+
+    public const string ToRecipientsIsRequired = "TO_RECIPIENTS_IS_REQUIRED";
+
+    public const string AtLeastOneRecipientIsRequired = "AT_LEAST_ONE_RECIPIENT_IS_REQUIRED";
+
+    public const string MaxAttemptsMustBeGreaterThanZero = "MAX_ATTEMPTS_MUST_BE_GREATER_THAN_ZERO";
+
+    public const string TemplateNotFound = "TEMPLATE_NOT_FOUND";
+
+    public const string ThumbnailIsRequired = "THUMBNAIL_IS_REQUIRED";
+
+    public const string BrandIsNotExists = "BRAND_IS_NOT_EXISTS";
+
+    public const string BrandIdIsRequired = "BRAND_ID_IS_REQUIRED";
+
+    public const string BrandNameIsRequired = "BRAND_NAME_IS_REQUIRED";
+
+    public const string CategoryIdIsRequired = "CATEGORY_ID_IS_REQUIRED";
+
+    public const string CategoryNameIsRequired = "CATEGORY_NAME_IS_REQUIRED";
+
+    public const string CategoryHasChildren = "CATEGORY_HAS_CHILDREN";
+
+    public const string CategoryCannotBeItsOwnParent = "CATEGORY_CANNOT_BE_ITS_OWN_PARENT";
+
+    public const string MaxUsageIsRequired = "MAX_USAGE_IS_REQUIRED";
+
+    public const string ValueIsRequired = "VALUE_IS_REQUIRED";
+
+    public const string ProgramNameIsRequired = "PROGRAM_NAME_IS_REQUIRED";
+
+    public const string InvalidOrderStatus = "INVALID_ORDER_STATUS";
+
+    public const string OrderStatusSameAsCurrent = "ORDER_STATUS_SAME_AS_CURRENT";
+
+    public const string CancelReasonIsRequired = "CANCEL_REASON_IS_REQUIRED";
+
+    public const string RefundReasonIsRequired = "REFUND_REASON_IS_REQUIRED";
+
+    public const string OrderCannotBeUpdated = "ORDER_CANNOT_BE_UPDATED";
+
+    public const string OrderStatusCannotBeUpdated = "ORDER_STATUS_CANNOT_BE_UPDATED";
+
+    public const string TitleIsRequired = "TITLE_IS_REQUIRED";
+
+    public const string CountIsRequired = "COUNT_IS_REQUIRED";
+
+    public const string InvalidDayRange = "INVALID_DAY_RANGE";
+
+    public const string ValueCannotBeNegative = "VALUE_CANNOT_BE_NEGATIVE";
+
+    public const string ProductsIsNotExistsOrNotInStock = "PRODUCTS_IS_NOT_EXISTS_OR_NOT_IN_STOCK";
+
+    public const string ProductIsNotExistsOrNotInStock = "PRODUCT_IS_NOT_EXISTS_OR_NOT_IN_STOCK";
+
+    public const string OrderNotFound = "ORDER_NOT_FOUND";
+
+    public const string InventoryItemAlreadyExists = "INVENTORY_ITEM_ALREADY_EXISTS";
+
+    public const string LocationIsNotExists = "LOCATION_IS_NOT_EXISTS";
+
+    public const string InventoryItemNotFound = "INVENTORY_ITEM_NOT_FOUND";
+
+    #endregion
+}

@@ -1,0 +1,5 @@
+- targets:
+    - 'localhost:7009'
+  labels:
+    service_name: catalog-service
+    service_path: /catalog-service

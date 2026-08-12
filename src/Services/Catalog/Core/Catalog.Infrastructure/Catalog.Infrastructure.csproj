@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Marten" />
+    <PackageReference Include="Minio" />
+    <PackageReference Include="Polly" />
+    <PackageReference Include="Polly.Extensions.Http" />
+    <PackageReference Include="Refit.HttpClientFactory" />
+    <PackageReference Include="Scrutor" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\Shared\Common\Common.csproj" />
+    <ProjectReference Include="..\Catalog.Application\Catalog.Application.csproj" />
+  </ItemGroup>
+
+</Project>

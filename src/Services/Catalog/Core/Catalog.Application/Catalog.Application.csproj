@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" />
+    <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" />
+    <PackageReference Include="Marten" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Scrutor" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\Shared\BuildingBlocks\BuildingBlocks.csproj" />
+    <ProjectReference Include="..\..\..\..\Shared\Common\Common.csproj" />
+    <ProjectReference Include="..\..\..\..\Shared\EventSourcing\EventSourcing.csproj" />
+    <ProjectReference Include="..\Catalog.Domain\Catalog.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Features\Brand\EventHandlers\" />
+    <Folder Include="Features\Category\EventHandlers\" />
+  </ItemGroup>
+
+</Project>

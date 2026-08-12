@@ -1,0 +1,112 @@
+﻿#region using
+
+using Catalog.Domain.Abstractions;
+
+#endregion
+
+namespace Catalog.Domain.Entities;
+
+public sealed class OutboxMessageEntity : EntityId<Guid>
+{
+    #region Fields, Properties and Indexers
+
+    public string? EventType { get; set; }
+
+    public string? Content { get; set; }
+
+    public DateTimeOffset OccurredOnUtc { get; set; }
+
+    public DateTimeOffset? ProcessedOnUtc { get; set; }
+
+    public string? LastErrorMessage { get; set; }
+
+    public DateTimeOffset? ClaimedOnUtc { get; set; }
+
+    public int AttemptCount { get; set; }
+
+    public int MaxAttempts { get; set; }
+
+    public DateTimeOffset? NextAttemptOnUtc { get; set; }
+
+    #endregion
+
+    #region Factories
+
+    public static OutboxMessageEntity Create(Guid id, string eventType, string content, DateTimeOffset occurredOnUtc)
+    {
+        return new OutboxMessageEntity()
+        {
+            Id = id,
+            EventType = eventType,
+            Content = content,
+            OccurredOnUtc = occurredOnUtc,
+            MaxAttempts = AppConstants.MaxAttempts,
+            AttemptCount = 0
+        };
+    }
+
+    #endregion
+
+    #region Methods
+
+    public void CompleteProcessing(DateTimeOffset processedOnUtc, string? lastErrorMessage = null)
+    {
+        ProcessedOnUtc = processedOnUtc;
+        LastErrorMessage = lastErrorMessage;
+        ClaimedOnUtc = null;
+        NextAttemptOnUtc = null;
+    }
+
+    public void Claim(DateTimeOffset claimedOnUtc)
+    {
+        ClaimedOnUtc = claimedOnUtc;
+    }
+
+    public void SetRetryProperties(int attemptCount, int maxAttempts, DateTimeOffset? nextAttemptOnUtc, string? lastErrorMessage)
+    {
+        AttemptCount = attemptCount;
+        MaxAttempts = maxAttempts;
+        NextAttemptOnUtc = nextAttemptOnUtc;
+        LastErrorMessage = lastErrorMessage;
+    }
+
+    public void RecordFailedAttempt(string errorMessage, DateTimeOffset currentTime)
+    {
+        IncreaseAttemptCount();
+
+        if (AttemptCount >= MaxAttempts)
+        {
+            LastErrorMessage = $"Max attempts ({MaxAttempts}) exceeded. Last error: {errorMessage}";
+            NextAttemptOnUtc = null;
+        }
+        else
+        {
+            // Calculate exponential backoff with jitter
+            var baseDelay = TimeSpan.FromSeconds(Math.Pow(2, AttemptCount - 1));
+            var maxDelay = TimeSpan.FromMinutes(5);
+            var jitter = TimeSpan.FromMilliseconds(Random.Shared.Next(0, 1000));
+            var delay = TimeSpan.FromTicks(Math.Min(baseDelay.Ticks, maxDelay.Ticks)) + jitter;
+
+            NextAttemptOnUtc = currentTime + delay;
+            LastErrorMessage = errorMessage;
+        }
+    }
+
+    public void IncreaseAttemptCount()
+    {
+        AttemptCount++;
+    }
+
+    public bool CanRetry(DateTimeOffset currentTime)
+    {
+        return AttemptCount < MaxAttempts &&
+               (NextAttemptOnUtc == null || currentTime >= NextAttemptOnUtc.Value);
+    }
+
+    public bool IsPermanentlyFailed()
+    {
+        return AttemptCount >= MaxAttempts;
+    }
+
+    #endregion
+}

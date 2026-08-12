@@ -1,0 +1,24 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "ProG Coder - Catalog",
+      "Group": "ProG Coder",
+      "Host": "postgres-sql",
+      "Port": 5432,
+      "MaintenanceDB": "Catalog_Service",
+      "Username": "postgres",
+      "SSLMode": "prefer",
+      "Comment": "Marten document store. Tables are mt_doc_*; the whole entity lives in the jsonb 'data' column."
+    },
+    "2": {
+      "Name": "ProG Coder - Keycloak",
+      "Group": "ProG Coder",
+      "Host": "postgres-sql",
+      "Port": 5432,
+      "MaintenanceDB": "keycloak_db",
+      "Username": "postgres",
+      "SSLMode": "prefer",
+      "Comment": "Keycloak's own schema (92 tables). Manage via the Keycloak admin console, not here."
+    }
+  }
+}

@@ -1,0 +1,67 @@
+# =========================
+# GLOBAL SETTINGS
+# =========================
+global:
+  scrape_interval: 15s # By default, scrape targets every 15 seconds.
+
+  # Attach these labels to any time series or alerts when communicating with
+  # external systems (federation, remote storage, Alertmanager).
+  external_labels:
+    monitor: 'progcoder-monitor'
+
+# =========================
+# SCRAPE CONFIGS
+# =========================
+scrape_configs:
+  # --- CORE / PROMETHEUS SELF-SCRAPE ---
+  # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
+  - job_name: 'prometheus'
+    basic_auth:
+      username: 'admin'
+      password: '123456789Aa'
+    static_configs:
+      - targets: ['prometheus:9090']
+
+  # --- STORAGE / MINIO (cluster metrics) ---
+  - job_name: minio
+    metrics_path: /minio/v2/metrics/cluster
+    static_configs:
+      - targets: ['minio:9000']
+
+  # --- OBSERVABILITY PIPELINE: OTEL COLLECTOR ---
+  - job_name: 'otel_collector'
+    static_configs:
+      - targets: ['otel-collector:8889']
+      - targets: ['otel-collector:8888']
+
+  # --- LOGGING / LOKI ---
+  - job_name: 'loki'
+    static_configs:
+    - targets: ['loki:3100']
+
+  # --- TRACING / TEMPO ---
+  - job_name: 'tempo'
+    static_configs:
+      - targets: [ 'tempo:3200' ]
+
+  # --- APPLICATIONS / MICROSERVICES (file_sd) ---
+  - job_name: 'microservices'
+    scheme: 'https'
+    metrics_path: '/metrics'
+    tls_config:
+      insecure_skip_verify: true
+    file_sd_configs:
+      - files:
+          - 'services/*.yml'
+        refresh_interval: 30s
+
+    # Relabeling to handle different service paths
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+      - source_labels: [service_name]
+        target_label: service
+      - source_labels: [service_path]
+        target_label: __metrics_path__
+        regex: (.+)
+        replacement: $1/metrics
