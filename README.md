@@ -9,6 +9,10 @@ This is a fork of a larger multi-service application. See
 [`APPLICATION-OVERVIEW.md`](APPLICATION-OVERVIEW.md) for what was kept, what
 was cut, and why.
 
+## Repository status
+
+This is a sample change to demonstrate the pull request workflow.
+
 ## What's here
 
 | Kept | Cut |
