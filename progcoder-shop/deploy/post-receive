@@ -1,0 +1,19 @@
+#!/bin/bash
+# Absolute path to the checked-out work-tree on the deploy server
+# (this is NOT the bare repo itself — it's where the deployable checkout lives)
+REPO_DIR=/home/bjit/transformers-sdlc/progcoder-shop
+
+# Subfolder inside REPO_DIR that holds docker-compose.yml
+COMPOSE_DIR="$REPO_DIR/progcoder-shop"
+
+DEPLOY_BRANCH="prog-shop-monitor-test-app"
+
+while read -r oldrev newrev refname; do
+    if [ "$refname" = "refs/heads/$DEPLOY_BRANCH" ]; then
+        echo "==> Deploying $DEPLOY_BRANCH..."
+        git --work-tree="$REPO_DIR" --git-dir="$REPO_DIR/.git" checkout -f "$DEPLOY_BRANCH"
+        cd "$COMPOSE_DIR"
+        docker compose -f docker-compose.yml up --build -d
+        echo "==> Deployment started."
+    fi
+done

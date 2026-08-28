@@ -1,0 +1,30 @@
+#!/bin/sh
+set -e
+
+# Windows deploy server (192.168.28.129). Git for Windows runs hooks under its
+# own sh.exe, so this is a POSIX script with MSYS-style paths: D:\ is /d/.
+#
+# Install as: "D:\BJIT AMS\ProG-shop-monitor-app-github\.git\hooks\post-receive"
+
+# Absolute path to the checked-out work-tree on the deploy server
+REPO_DIR="/d/BJIT AMS/ProG-shop-monitor-app-github"
+
+# Subfolder inside REPO_DIR that holds docker-compose.yml
+COMPOSE_DIR="$REPO_DIR/progcoder-shop"
+
+DEPLOY_BRANCH="deploy"
+
+while read -r oldrev newrev refname; do
+    if [ "$refname" = "refs/heads/$DEPLOY_BRANCH" ]; then
+        echo "==> Deploying $DEPLOY_BRANCH..."
+        git --work-tree="$REPO_DIR" --git-dir="$REPO_DIR/.git" checkout -f "$DEPLOY_BRANCH"
+        cd "$COMPOSE_DIR"
+        # .env is gitignored and never arrives with a push; first deploy seeds it
+        # from the sample so the build has values to interpolate.
+        [ -f .env ] || cp .env.sample .env
+        docker compose -f docker-compose.yml up --build -d
+        echo "==> Deployment started."
+        echo "==> The monitor is a host process, not a container - it is NOT"
+        echo "    restarted by this hook. Restart it by hand if monitor/ changed."
+    fi
+done
