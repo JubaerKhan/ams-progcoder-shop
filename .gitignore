@@ -1,0 +1,59 @@
+# --- .NET build output (progcoder-shop) ---
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+build/
+bld/
+[Oo]ut/
+msbuild.log
+msbuild.err
+msbuild.wrn
+*.user
+*.userosscache
+*.sln.docstates
+project.lock.json
+
+# --- Visual Studio / Rider cache ---
+.vs/
+.vscode/
+.idea/
+*.suo
+
+# --- Node build output / cache (App.Admin, etc.) ---
+node_modules/
+dist/
+.vite/
+coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# --- Python cache (monitor) ---
+__pycache__/
+*.pyc
+*.pyo
+
+# --- Logs ---
+*.log
+logs/
+
+# --- Secrets (never commit) ---
+.env
+*.env
+!.env.example
+
+# --- Container runtime state (bind-mounted volumes) ---
+# Not root-anchored: lives under progcoder-shop/docker-volumes/
+docker-volumes/
+local-data/
+
+# --- OS / editor cruft ---
+.DS_Store
+Thumbs.db
+*.swp
+*.*~

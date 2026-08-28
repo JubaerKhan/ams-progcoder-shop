@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "ams-otel-monitor": {
+      "type": "http",
+      "url": "http://localhost:7003/mcp"
+    }
+  }
+}

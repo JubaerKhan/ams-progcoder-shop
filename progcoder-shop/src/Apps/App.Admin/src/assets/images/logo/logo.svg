@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 430 100" width="430" height="100" role="img" aria-label="ProG Coder Admin Console">
+  <title>ProG Coder — Admin Console</title>
+  <defs>
+    <linearGradient id="acBag" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#A855F7"/>
+    </linearGradient>
+    <linearGradient id="acInk" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#C026D3"/>
+    </linearGradient>
+  </defs>
+
+  <!-- mark: a shopping bag carrying code -->
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M36 38 V28 a14 14 0 0 1 28 0 V38" stroke="url(#acBag)" stroke-width="7"/>
+    <rect x="16" y="34" width="68" height="54" rx="14" fill="url(#acBag)" stroke="none"/>
+    <path d="M41 52 L33 61 L41 70" stroke="#fff" stroke-width="5"/>
+    <path d="M59 52 L67 61 L59 70" stroke="#fff" stroke-width="5"/>
+    <path d="M54 49 L46 73" stroke="#fff" stroke-width="5" opacity=".85"/>
+  </g>
+
+  <!-- wordmark -->
+  <text x="104" y="62"
+        font-family="system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif"
+        font-size="46" font-weight="800" letter-spacing="-1">
+    <tspan fill="#0F172A">ProG</tspan><tspan fill="url(#acInk)">Coder</tspan>
+  </text>
+
+  <!-- ADMIN pill: marks this as the back-office build, and fills the canvas so the
+       4.3:1 aspect the header CSS expects is used rather than left as dead space. -->
+  <g>
+    <rect x="364" y="32" width="60" height="28" rx="8" fill="#0F172A" opacity=".06"/>
+    <rect x="364.75" y="32.75" width="58.5" height="26.5" rx="7.25" fill="none"
+          stroke="url(#acInk)" stroke-width="1.5" opacity=".55"/>
+    <text x="394" y="50.5" text-anchor="middle"
+          font-family="system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif"
+          font-size="12" font-weight="700" letter-spacing="1.6" fill="url(#acInk)">ADMIN</text>
+  </g>
+</svg>

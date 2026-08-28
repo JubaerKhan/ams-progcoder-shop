@@ -1,0 +1,235 @@
+services:
+
+  # =========================
+  # Database
+  # =========================
+  postgres-sql:
+    image: ${POSTGRES_IMAGE_NAME}
+    container_name: postgres-sql
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_MULTIPLE_DATABASES: ${POSTGRES_MULTIPLE_DATABASES}
+    ports:
+      - ${POSTGRES_PORT}:5432
+    volumes:
+      - ./docker-volumes/postgres-sql:/var/lib/postgresql/data
+      - ./config/postgres-sql:/docker-entrypoint-initdb.d
+    entrypoint: ["/bin/bash", "-c", "chmod +x /docker-entrypoint-initdb.d/*.sh && docker-entrypoint.sh postgres"]
+    networks:
+      - progcoder_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d postgres -h localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # =========================
+  # Storage / Object store
+  # =========================
+  minio:
+    image: ${MINIO_IMAGE_NAME}
+    container_name: minio
+    command: server --console-address ":9001" /data
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_PROMETHEUS_AUTH_TYPE: public
+    hostname: minio
+    ports:
+      - ${MINIO_API_PORT}:9000
+      - ${MINIO_UI_PORT}:9001
+    volumes:
+      - ./docker-volumes/minio:/data
+    networks:
+      - progcoder_network
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # =========================
+  # Identity / Security
+  # =========================
+  keycloak:
+    image: ${KEYCLOAK_IMAGE_NAME}
+    container_name: keycloak
+    restart: unless-stopped
+    command:
+      - start
+    volumes:
+      - ./config/keycloak/providers:/opt/keycloak/providers
+    environment:
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_PORT: ${KEYCLOAK_PORT}
+      KC_HOSTNAME_STRICT_BACKCHANNEL: false
+      KC_HTTP_ENABLED: true
+      KC_HOSTNAME_STRICT_HTTPS: false
+      KC_HEALTH_ENABLED: true
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres-sql/keycloak_db # Use the database name from POSTGRES_MULTIPLE_DATABASES
+      KC_DB_USERNAME: ${POSTGRES_USER}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      WEBHOOK_URL: ${WEBHOOK_URL}
+    ports:
+      - ${KEYCLOAK_PORT}:8080
+    depends_on:
+      - postgres-sql
+    networks:
+      - progcoder_network
+
+  # =====================================
+  # Tracing / Metrics / Logging (observability - all 3 pillars kept)
+  # =====================================
+  otel-collector:
+    image: ${OTEL_IMAGE_NAME}
+    container_name: otel-collector
+    restart: unless-stopped
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./config/otel-collector/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    environment:
+      MONITOR_API_KEY: ${MONITOR_API_KEY}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - ${OTEL_PPROF_PORT}:1888   # pprof extension
+      - ${OTEL_PROMETHEUS_METRICS_PORT}:8888   # Prometheus metrics exposed by the collector
+      - ${OTEL_PROMETHEUS_EXPORTER_PORT}:8889  # Prometheus exporter metrics
+      - ${OTEL_HEALTH_PORT}:13133 # health_check extension
+      - ${OTEL_OTLP_GRPC_PORT}:4317   # OTLP gRPC receiver
+      - ${OTEL_ZPAGES_PORT}:55679 # zpages extension
+    networks:
+      - progcoder_network
+
+  loki:
+    image: ${LOKI_IMAGE_NAME}
+    container_name: loki
+    restart: unless-stopped
+    ports:
+      - ${LOKI_PORT}:3100
+    volumes:
+      - ./docker-volumes/loki:/loki
+      - ./config/loki/loki-config.yml:/etc/loki/loki-config.yaml
+    networks:
+      - progcoder_network
+
+  tempo:
+    image: ${TEMPO_IMAGE_NAME}
+    container_name: tempo
+    restart: unless-stopped
+    ports:
+      - ${TEMPO_HTTP_API_PORT}:3200
+    volumes:
+      - ./config/tempo/tempo.yaml:/etc/tempo/tempo.yaml
+      - ./docker-volumes/tempo:/var/tempo
+    command: [ "-config.file=/etc/tempo/tempo.yaml" ]
+    networks:
+      - progcoder_network
+
+  prometheus:
+    image: ${PROMETHEUS_IMAGE_NAME}
+    container_name: prometheus
+    restart: unless-stopped
+    user: root
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - ${PROMETHEUS_PORT}:9090
+    volumes:
+      - ./config/prometheus:/etc/prometheus
+      - ./docker-volumes/prometheus:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--web.config.file=/etc/prometheus/web.yml"
+    networks:
+      - progcoder_network
+
+  grafana:
+    image: ${GRAFANA_IMAGE_NAME}
+    container_name: grafana
+    restart: unless-stopped
+    user: root
+    ports:
+      - ${GRAFANA_PORT}:3000
+    volumes:
+      - ./docker-volumes/grafana:/var/lib/grafana
+      - ./config/grafana/grafana.ini:/etc/grafana/grafana.ini
+      - ./config/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ./config/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards
+    environment:
+      GF_INSTALL_PLUGINS: "flant-statusmap-panel,grafana-piechart-panel,grafana-exploretraces-app"
+    networks:
+      - progcoder_network
+
+  # =========================
+  # Application (the one kept use case: catalog management)
+  # =========================
+  catalog-api:
+    image: ${DOCKERHUB_USERNAME}/catalog-api:latest
+    build:
+      context: .
+      dockerfile: src/Services/Catalog/Api/Catalog.Api/Dockerfile
+    container_name: catalog-api
+    restart: unless-stopped
+    environment:
+      # Browser-reachable MinIO address for product image PublicURLs - distinct
+      # from appsettings.json's "MinIO:Endpoint" (container-network "minio:9000"),
+      # which the server uses for its own calls to MinIO and isn't reachable
+      # from outside Docker.
+      MinIO__PublicEndpoint: localhost:${MINIO_API_PORT}
+      # CORS: index 0 stays http://localhost:7002 (from appsettings.json); index 1
+      # adds the LAN-IP origin so the SPA works when browsed via the host's IP too.
+      CorsConfig__Domains__1: ${APP_ORIGIN:-http://localhost:7002}
+    ports:
+      - ${CATALOG_API_PORT}:8080
+    depends_on:
+      - postgres-sql
+      - keycloak
+      - minio
+      - otel-collector
+    networks:
+      - progcoder_network
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/localhost/8080 && printf 'GET /health HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 && head -1 <&3 | grep -qE '200|204'"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  app-admin:
+    image: ${DOCKERHUB_USERNAME}/app-admin:latest
+    build:
+      context: .
+      dockerfile: src/Apps/App.Admin/Dockerfile
+      args:
+        VITE_KEYCLOAK_URL: ${VITE_KEYCLOAK_URL}
+        VITE_KEYCLOAK_REALM: ${VITE_KEYCLOAK_REALM}
+        VITE_KEYCLOAK_CLIENT_ID: ${VITE_KEYCLOAK_CLIENT_ID}
+        VITE_KEYCLOAK_REDIRECT_URI: http://localhost:${APP_ADMIN_PORT}/
+        VITE_KEYCLOAK_BASE_URL: ${VITE_KEYCLOAK_BASE_URL}
+        VITE_API_GATEWAY: ${VITE_API_GATEWAY}
+    container_name: app-admin
+    restart: unless-stopped
+    ports:
+      - ${APP_ADMIN_PORT}:80
+    depends_on:
+      - catalog-api
+      - keycloak
+    networks:
+      - progcoder_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+networks:
+  progcoder_network:
