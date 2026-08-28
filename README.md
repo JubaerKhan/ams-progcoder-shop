@@ -15,7 +15,7 @@ them, so the monitor can point at a different target without being rebuilt.
 progcoder-shop            otel-collector                 monitor (host process)
   Catalog.Api  --OTLP-->  logs pipeline  --+--> Loki
                                            |
-                                           +--> http://host.docker.internal:7787/v1/logs
+                                           +--> http://host.docker.internal:7003/v1/logs
 ```
 
 The coupling is a single exporter entry in

@@ -24,7 +24,7 @@ flowchart LR
     Tempo[("Tempo<br/>:7604")]
     Prom[("Prometheus<br/>:7602")]
     Graf["Grafana<br/>:7601"]
-    Mon["monitor.py<br/>host, non-Docker<br/>:7787"]
+    Mon["monitor.py<br/>host, non-Docker<br/>:7003"]
     Agent(["MCP client / AI agent"])
     Hook(["Webhook receiver"])
 
@@ -85,7 +85,7 @@ Ten containers, one process outside Docker.
 
 | Service | Port | What it does |
 |---|---|---|
-| `monitor.py` | `:7787` | Receives the duplicated log stream, deduplicates Warning/Error/Fatal into counted issues on the filesystem, fires webhooks, and serves `list_issues` / `get_issue` / `get_stats` / `list_recent_occurrences` as MCP tools over Streamable HTTP. Gated by a shared API key once reachable beyond localhost. |
+| `monitor.py` | `:7003` | Receives the duplicated log stream, deduplicates Warning/Error/Fatal into counted issues on the filesystem, fires webhooks, and serves `list_issues` / `get_issue` / `get_stats` / `list_recent_occurrences` as MCP tools over Streamable HTTP. Gated by a shared API key once reachable beyond localhost. |
 
 ## Use cases
 

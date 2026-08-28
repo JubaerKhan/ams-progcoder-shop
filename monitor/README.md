@@ -35,7 +35,7 @@ the existing `logs` pipeline already exports to Loki; a second exporter,
 `otlphttp/monitor`, was added to the *same* pipeline, so the collector now
 duplicates every log record to both destinations. No application code
 changed, no new instrumentation was added — this reuses the log stream
-that was already flowing. The endpoint is `host.docker.internal:7787`
+that was already flowing. The endpoint is `host.docker.internal:7003`
 because this monitor runs on the host, outside Docker, and that's how a
 container reaches the host on Docker Desktop.
 
@@ -97,14 +97,14 @@ repeat occurrence fires an HTTP POST:
 }
 ```
 
-**MCP tools** (served at `http://<host>:7787/mcp`, Streamable HTTP transport):
+**MCP tools** (served at `http://<host>:7003/mcp`, Streamable HTTP transport):
 - `list_issues(severity?, limit=50)` — deduplicated issue summaries, most recent first
 - `get_issue(fingerprint)` — full detail incl. stack trace and every occurrence
 - `get_stats()` — counts by severity, total occurrences, services seen
 - `list_recent_occurrences(minutes=60, severity?)` — flat, non-deduplicated feed for "what just happened"
 
 **REST read API** (same data, for plain HTTP clients — dashboards, `curl`,
-non-agent services — served at `http://<host>:7787`):
+non-agent services — served at `http://<host>:7003`):
 - `GET /issues?severity=WARN|ERROR&limit=50` — deduplicated issue summaries
 - `GET /issues/{fingerprint}` — full detail for one issue (404 if unknown)
 - `GET /stats` — counts by severity, total occurrences, services seen
@@ -119,7 +119,7 @@ is set they require `Authorization: Bearer <key>` (only `/health` stays open).
 Example:
 
 ```bash
-curl -H "Authorization: Bearer <key>" http://<host>:7787/stats
+curl -H "Authorization: Bearer <key>" http://<host>:7003/stats
 ```
 
 ## Exposing this beyond localhost (LAN access)
@@ -134,7 +134,7 @@ here to make it *reachable*. Three separate things matter for making it
    yourself (this is a system-settings change, so it's intentionally not
    automated):
    ```powershell
-   New-NetFirewallRule -DisplayName "AMS OTEL Monitor" -Direction Inbound -Protocol TCP -LocalPort 7787 -Action Allow
+   New-NetFirewallRule -DisplayName "AMS OTEL Monitor" -Direction Inbound -Protocol TCP -LocalPort 7003 -Action Allow
    ```
 2. **Auth**: set `MONITOR_API_KEY` (see `.env.sample`) once this is reachable
    by more than just localhost/Docker. Every request to `/mcp` and `/v1/logs`
@@ -174,7 +174,7 @@ or `$env:VAR=...` in PowerShell, or your process manager's env config).
 
 Once running, you should see:
 ```
-[monitor] listening on http://0.0.0.0:7787  (MCP: /mcp, OTLP log ingest: /v1/logs, health: /health)
+[monitor] listening on http://0.0.0.0:7003  (MCP: /mcp, OTLP log ingest: /v1/logs, health: /health)
 ```
 
 `GET /health` is a quick liveness/sanity check (`{"status":"ok","issues_tracked":N}`).

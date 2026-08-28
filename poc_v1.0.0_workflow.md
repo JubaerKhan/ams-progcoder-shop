@@ -23,7 +23,7 @@ flowchart LR
         APP["progcoder-shop\nCatalog.Api .NET 8 :7101 · App.Admin :7002"]
         OTELC["otel-collector\n:7605"]
         OBS["Loki :7603 · Tempo :7604\nPrometheus :7602 · Grafana :7601"]
-        MON["monitor.py  :7787\ndedup → fingerprinted incidents\nMCP + REST + webhook"]
+        MON["monitor.py  :7003\ndedup → fingerprinted incidents\nMCP + REST + webhook"]
         APP -->|OTLP logs/traces/metrics| OTELC --> OBS
         OTELC -->|duplicate log stream| MON
     end
@@ -117,7 +117,7 @@ flowchart TD
 ```mermaid
 sequenceDiagram
     participant APP as Catalog.Api
-    participant MON as monitor.py (:7787)
+    participant MON as monitor.py (:7003)
     participant AMS as AMS backend (:8000)
     participant LG as AMS agent (LangGraph)
     participant GH as GitHub PR
@@ -246,7 +246,7 @@ p1888_ai_trans_agentic_ams  (Gerrit + GitHub remotes)
 │   ├─ landing-page/  ·  documentation/  ·  docs/
 │
 └─ ams-test-monitor-project ── MONITORED SIDE (demo)
-    ├─ monitor/          # monitor.py (:7787) + alert-receiver.py  — incident source
+    ├─ monitor/          # monitor.py (:7003) + alert-receiver.py  — incident source
     └─ progcoder-shop/   # .NET 8 + React target app w/ seeded defects + OTEL stack
 
 Github/progcoder-shop/   # identical app source, GitHub remote — the PR target for fixes
