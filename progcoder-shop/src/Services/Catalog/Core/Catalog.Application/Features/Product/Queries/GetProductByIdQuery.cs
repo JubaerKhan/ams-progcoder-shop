@@ -54,16 +54,17 @@ public sealed class GetProductByIdQueryHandler(IDocumentSession session, IMapper
             }
         }
 
-        // Seeded defect (intentional - for AMS observability testing, see
-        // DEV-RUNBOOK.md "Seeded incidents"). Draft/unpublished products are meant to
-        // carry a moderator review note, populated once review completes - but
-        // nothing ever populates it while a product is still in draft, so reading it
-        // here throws a NullReferenceException every time an unpublished product is
-        // opened. Unhandled -> 500, logged at Error, traced as a failed span.
+        // Unpublished products may carry a moderator review note once review
+        // completes. While no note exists yet, return the product as-is instead of
+        // dereferencing a null note.
         if (!result.Published)
         {
             string? pendingReviewNote = null;
-            reponse.ShortDescription = $"{reponse.ShortDescription} (review: {pendingReviewNote.Trim()})";
+
+            if (pendingReviewNote is not null)
+            {
+                reponse.ShortDescription = $"{reponse.ShortDescription} (review: {pendingReviewNote.Trim()})";
+            }
         }
 
         return new GetProductByIdResult(reponse);
