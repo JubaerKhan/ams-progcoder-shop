@@ -39,6 +39,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Catalog.Domain", "src\Servi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Catalog.Infrastructure", "src\Services\Catalog\Core\Catalog.Infrastructure\Catalog.Infrastructure.csproj", "{4C00CE41-F93C-BC03-5C22-1E152025BE87}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{7C4E1A2B-5D93-4E86-9F0B-2A7C33D41E55}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Catalog.Application.UnitTests", "src\Services\Catalog\Tests\Catalog.Application.UnitTests\Catalog.Application.UnitTests.csproj", "{8E5D6B7C-1A24-4C39-8F2E-6D0B9C5A4E31}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -73,6 +77,10 @@ Global
 		{4C00CE41-F93C-BC03-5C22-1E152025BE87}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4C00CE41-F93C-BC03-5C22-1E152025BE87}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4C00CE41-F93C-BC03-5C22-1E152025BE87}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8E5D6B7C-1A24-4C39-8F2E-6D0B9C5A4E31}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8E5D6B7C-1A24-4C39-8F2E-6D0B9C5A4E31}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8E5D6B7C-1A24-4C39-8F2E-6D0B9C5A4E31}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8E5D6B7C-1A24-4C39-8F2E-6D0B9C5A4E31}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -88,6 +96,8 @@ Global
 		{99EA277D-1511-AC2F-89B0-3120D9EF0D74} = {3BCDF0B9-CC31-45A9-9187-61030DAC457B}
 		{AC3DCE5A-3542-46EB-6334-6595D4167590} = {3BCDF0B9-CC31-45A9-9187-61030DAC457B}
 		{4C00CE41-F93C-BC03-5C22-1E152025BE87} = {3BCDF0B9-CC31-45A9-9187-61030DAC457B}
+		{7C4E1A2B-5D93-4E86-9F0B-2A7C33D41E55} = {310F2C5A-6698-4ABF-898E-5166CB08C4ED}
+		{8E5D6B7C-1A24-4C39-8F2E-6D0B9C5A4E31} = {7C4E1A2B-5D93-4E86-9F0B-2A7C33D41E55}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F6F14A8F-92CF-46E4-99A4-78E0093FC991}
