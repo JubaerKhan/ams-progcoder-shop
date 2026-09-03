@@ -29,19 +29,18 @@ public sealed class GetProductByIdQueryHandler(IDocumentSession session, IMapper
 
         var reponse = mapper.Map<ProductDto>(result);
 
-        if (result.CategoryIds != null && result.CategoryIds.Count > 0)
+        foreach (var categoryId in result.CategoryIds ?? [])
         {
-            foreach (var categoryId in result.CategoryIds)
+            var category = categories.FirstOrDefault(c => c.Id == categoryId);
+            if (category == null)
             {
-                var category = categories.FirstOrDefault(c => c.Id == categoryId);
-                if (category != null)
-                {
-                    reponse.CategoryNames ??= [];
-                    reponse.CategoryNames.Add(category.Name!);
-                    reponse.CategoryIds ??= [];
-                    reponse.CategoryIds.Add(category.Id);
-                }
+                continue;
             }
+
+            reponse.CategoryNames ??= [];
+            reponse.CategoryNames.Add(category.Name ?? string.Empty);
+            reponse.CategoryIds ??= [];
+            reponse.CategoryIds.Add(category.Id);
         }
 
         if (result.BrandId.HasValue)
@@ -54,18 +53,12 @@ public sealed class GetProductByIdQueryHandler(IDocumentSession session, IMapper
             }
         }
 
-        // Unpublished products may carry a moderator review note once review
-        // completes. While no note exists yet, return the product as-is instead of
-        // dereferencing a null note.
-        if (!result.Published)
-        {
-            string? pendingReviewNote = null;
-
-            if (pendingReviewNote is not null)
-            {
-                reponse.ShortDescription = $"{reponse.ShortDescription} (review: {pendingReviewNote.Trim()})";
-            }
-        }
+        // Incident 17: the draft-review note was the source of the 500s on
+        // unpublished products. Nothing in the current write path ever populates
+        // one, so the aggregate carries no such field and it is deliberately not
+        // read here. Optional members of the detail aggregate (CategoryIds,
+        // Category.Name) are now guarded too, so a partially populated draft can
+        // no longer throw while it is being enriched.
 
         return new GetProductByIdResult(reponse);
     }
