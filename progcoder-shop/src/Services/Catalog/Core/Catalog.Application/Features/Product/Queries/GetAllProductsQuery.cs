@@ -77,16 +77,14 @@ public sealed class GetAllProductsQueryHandler(IDocumentSession session, IMapper
                     }
                 }
 
-                // Seeded defect (intentional - second AMS observability test case, see
-                // DEV-RUNBOOK.md "Seeded incidents"). SalePrice is optional and has no
-                // validation (see UpdateProductCommandValidator), so an admin can set it
-                // to 0 for a "100% off" clearance item. Computing the discount badge
-                // percentage then divides by that zero sale price, throwing
-                // DivideByZeroException for the whole product list, not just the one
-                // poisoned item.
-                if (item.SalePrice == 0)
+                // Incident 5 (spec-b604db): the discount badge used to divide by
+                // SalePrice, so a "100% off" clearance item with SalePrice = 0 threw
+                // DivideByZeroException and failed the whole unpaged product list with
+                // a 500. Compute the saving as a share of the required, always-positive
+                // regular Price instead, and only badge a genuine discount.
+                var discountPercentage = GetDiscountPercentage(item.Price, item.SalePrice);
+                if (discountPercentage > 0)
                 {
-                    var discountPercentage = (item.Price - item.SalePrice.Value) / item.SalePrice.Value * 100;
                     item.ShortDescription = $"{item.ShortDescription} (-{discountPercentage}% off)";
                 }
             }
@@ -96,6 +94,16 @@ public sealed class GetAllProductsQueryHandler(IDocumentSession session, IMapper
 
         return response;
     }
+
+    /// <summary>
+    ///     Discount badge percentage as a share of the regular price. Returns 0 when
+    ///     there is no genuine saving: no sale price, a zero or negative sale price,
+    ///     a non-positive regular price, or a sale price at or above the regular price.
+    /// </summary>
+    public static int GetDiscountPercentage(decimal price, decimal? salePrice) =>
+        price <= 0 || salePrice is null or <= 0 || salePrice >= price
+            ? 0
+            : (int)Math.Round((price - salePrice.Value) / price * 100, MidpointRounding.AwayFromZero);
 
     #endregion
 }
