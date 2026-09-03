@@ -172,8 +172,8 @@ sequenceDiagram
 
 | Incident | Route | Exception | Source (Catalog.Application) | State |
 |---|---|---|---|---|
-| Unpublished product detail | `GET /admin/products/{id}` | `NullReferenceException` | `Features/Product/Queries/GetProductByIdQuery.cs` | **fixed** (incident 126, PR #3) |
-| Zero sale-price list | `GET /admin/products/all` | `DivideByZeroException` (fails whole list) | `Features/Product/Queries/GetAllProductsQuery.cs` | **fixed** (incident 188) |
+| Unpublished product detail | `GET /admin/products/{id}` | `NullReferenceException` | `Features/Product/Queries/GetProductByIdQuery.cs:66` | **live** once seeded (`Published=false`) |
+| Zero sale-price list | `GET /admin/products/all` | `DivideByZeroException` (fails whole list) | `Features/Product/Queries/GetAllProductsQuery.cs:89` | **armed** — trips when a product has `SalePrice=0` |
 
 Canonical list: `progcoder-shop/APPLICATION-OVERVIEW.md`. These give a deterministic error → fix → PR demo.
 

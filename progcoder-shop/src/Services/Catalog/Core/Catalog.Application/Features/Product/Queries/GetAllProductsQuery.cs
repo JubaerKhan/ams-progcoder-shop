@@ -1,6 +1,5 @@
 ﻿#region using
 
-using System.Runtime.CompilerServices;
 using AutoMapper;
 using Catalog.Application.Dtos.Products;
 using Catalog.Application.Models.Filters;
@@ -9,8 +8,6 @@ using Catalog.Domain.Entities;
 using Marten;
 
 #endregion
-
-[assembly: InternalsVisibleTo("Catalog.Application.UnitTests")]
 
 namespace Catalog.Application.Features.Product.Queries;
 
@@ -80,15 +77,16 @@ public sealed class GetAllProductsQueryHandler(IDocumentSession session, IMapper
                     }
                 }
 
-                // Incident 188: this badge used to divide by SalePrice, so any product
-                // with SalePrice = 0 (an optional field with no validation) threw
-                // DivideByZeroException and failed the whole list response with a 500.
-                // The discount is now computed against the regular Price, which is a
-                // required, always-positive field, and only a genuine saving is badged.
-                var discountPercentage = GetDiscountPercentage(item.Price, item.SalePrice);
-
-                if (discountPercentage > 0)
+                // Seeded defect (intentional - second AMS observability test case, see
+                // DEV-RUNBOOK.md "Seeded incidents"). SalePrice is optional and has no
+                // validation (see UpdateProductCommandValidator), so an admin can set it
+                // to 0 for a "100% off" clearance item. Computing the discount badge
+                // percentage then divides by that zero sale price, throwing
+                // DivideByZeroException for the whole product list, not just the one
+                // poisoned item.
+                if (item.SalePrice == 0)
                 {
+                    var discountPercentage = (item.Price - item.SalePrice.Value) / item.SalePrice.Value * 100;
                     item.ShortDescription = $"{item.ShortDescription} (-{discountPercentage}% off)";
                 }
             }
@@ -97,24 +95,6 @@ public sealed class GetAllProductsQueryHandler(IDocumentSession session, IMapper
         var response = new GetAllProductsResult(items);
 
         return response;
-    }
-
-    /// <summary>
-    /// Discount between the regular price and an optional sale price, as a whole
-    /// percentage of the regular price. Returns 0 (no badge) when there is no sale
-    /// price, when it is zero or free, when the regular price is zero, or when the
-    /// sale price is not lower than the regular price.
-    /// </summary>
-    internal static int GetDiscountPercentage(decimal price, decimal? salePrice)
-    {
-        if (salePrice is not > 0 || price <= 0 || salePrice >= price)
-        {
-            return 0;
-        }
-
-        var discount = (price - salePrice.Value) / price * 100;
-
-        return (int)Math.Round(discount, MidpointRounding.AwayFromZero);
     }
 
     #endregion
