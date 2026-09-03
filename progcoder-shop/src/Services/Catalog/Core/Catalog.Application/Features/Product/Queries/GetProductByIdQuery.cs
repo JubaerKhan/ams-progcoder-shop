@@ -29,19 +29,18 @@ public sealed class GetProductByIdQueryHandler(IDocumentSession session, IMapper
 
         var reponse = mapper.Map<ProductDto>(result);
 
-        if (result.CategoryIds != null && result.CategoryIds.Count > 0)
+        foreach (var categoryId in result.CategoryIds ?? [])
         {
-            foreach (var categoryId in result.CategoryIds)
+            var category = categories.FirstOrDefault(c => c.Id == categoryId);
+            if (category == null)
             {
-                var category = categories.FirstOrDefault(c => c.Id == categoryId);
-                if (category != null)
-                {
-                    reponse.CategoryNames ??= [];
-                    reponse.CategoryNames.Add(category.Name!);
-                    reponse.CategoryIds ??= [];
-                    reponse.CategoryIds.Add(category.Id);
-                }
+                continue;
             }
+
+            reponse.CategoryNames ??= [];
+            reponse.CategoryNames.Add(category.Name ?? string.Empty);
+            reponse.CategoryIds ??= [];
+            reponse.CategoryIds.Add(category.Id);
         }
 
         if (result.BrandId.HasValue)
@@ -54,17 +53,12 @@ public sealed class GetProductByIdQueryHandler(IDocumentSession session, IMapper
             }
         }
 
-        // Seeded defect (intentional - for AMS observability testing, see
-        // DEV-RUNBOOK.md "Seeded incidents"). Draft/unpublished products are meant to
-        // carry a moderator review note, populated once review completes - but
-        // nothing ever populates it while a product is still in draft, so reading it
-        // here throws a NullReferenceException every time an unpublished product is
-        // opened. Unhandled -> 500, logged at Error, traced as a failed span.
-        if (!result.Published)
-        {
-            string? pendingReviewNote = null;
-            reponse.ShortDescription = $"{reponse.ShortDescription} (review: {pendingReviewNote.Trim()})";
-        }
+        // Incident 6: reading a draft review note was the source of the 500s on
+        // unpublished products. No write path populates a review note, so the
+        // aggregate carries no such field and the detail read does not touch it.
+        // Optional members of the detail aggregate (CategoryIds, Category.Name)
+        // are guarded as well, so a partially populated draft cannot throw while
+        // being enriched either.
 
         return new GetProductByIdResult(reponse);
     }
