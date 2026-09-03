@@ -165,6 +165,55 @@ def normalize_for_fingerprint(message: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Known (seeded) signatures
+# ---------------------------------------------------------------------------
+# Some Error-level lines in this stack are deliberate, spec-mandated signals
+# rather than regressions. The strongest case is the seeded unpublished-detail
+# NullReferenceException in Catalog.Api: spec-0be21a (lifecycle 'agreed')
+# requires that log line to keep flowing as the log-pillar component of the
+# seeded incident, so it must NOT be remediated. Instead it is tagged here, in
+# the logging/alerting pipeline, so agents and humans reading /issues or the
+# webhook feed see "this is the known seeded incident", not a new break.
+#
+# A signature matches when service_name starts with `service`, exception_type
+# equals `exception_type` (when given), and the (raw) message contains
+# `message_contains`. First match wins.
+
+KNOWN_SIGNATURES: tuple[dict, ...] = (
+    {
+        "tag": "seeded",
+        "spec": "spec-0be21a",
+        "title": "Unpublished product detail view NullReferenceException",
+        "note": (
+            "Intentional log-pillar signal mandated by spec-0be21a (lifecycle "
+            "'agreed'). Do not remediate: removing it requires overturning the "
+            "agreed requirement. Track as the seeded incident instead."
+        ),
+        "service": "catalog.service",
+        "exception_type": "System.NullReferenceException",
+        "message_contains": "Object reference not set to an instance of an object",
+    },
+)
+
+
+def known_signature_for(service_name: str | None, exception_type: str | None,
+                        message: str | None) -> dict | None:
+    """Return the known-signature record matching this occurrence, or None."""
+    service = (service_name or "").strip()
+    exc = (exception_type or "").strip() or None
+    msg = (message or "").strip()
+    for sig in KNOWN_SIGNATURES:
+        if not service.startswith(sig["service"]):
+            continue
+        if sig.get("exception_type") and sig["exception_type"] != exc:
+            continue
+        if sig.get("message_contains") and sig["message_contains"] not in msg:
+            continue
+        return sig
+    return None
+
+
+# ---------------------------------------------------------------------------
 # Issue store (file-backed, deduplicated)
 # ---------------------------------------------------------------------------
 
@@ -186,6 +235,19 @@ class IssueStore:
                 try:
                     issue = json.loads(f.read_text(encoding="utf-8"))
                     self.issues[issue["fingerprint"]] = issue
+                    # Backfill: issues recorded before known-signature tagging
+                    # existed carry no known_* fields. Re-derive them from the
+                    # stored signature so old and new files look the same.
+                    if not issue.get("known_tag"):
+                        known = known_signature_for(
+                            issue.get("service_name"), issue.get("exception_type"), issue.get("message"),
+                        )
+                        if known:
+                            issue["known_tag"] = known["tag"]
+                            issue["known_spec"] = known["spec"]
+                            issue["known_title"] = known["title"]
+                            issue["known_note"] = known["note"]
+                            self._write(issue)
                 except Exception as e:
                     print(f"[monitor] skipping unreadable issue file {f}: {e}")
 
@@ -213,6 +275,12 @@ class IssueStore:
             existing = self.issues.get(fp)
             is_new = existing is None
             if is_new:
+                # Known-signature tagging happens at issue creation and is
+                # persisted with the file, so it survives restarts (load())
+                # and rides along on every later occurrence.
+                known = known_signature_for(
+                    occ["service_name"], occ.get("exception_type"), occ["message"],
+                )
                 issue = {
                     "fingerprint": fp,
                     "severity": occ["severity"],
@@ -222,6 +290,10 @@ class IssueStore:
                     "message": occ["message"],
                     "message_template": occ.get("message_template"),
                     "sample_stack_trace": occ.get("stack_trace"),
+                    "known_tag": known["tag"] if known else None,
+                    "known_spec": known["spec"] if known else None,
+                    "known_title": known["title"] if known else None,
+                    "known_note": known["note"] if known else None,
                     "first_seen": occ["timestamp"],
                     "last_seen": occ["timestamp"],
                     "count": 1,
@@ -250,6 +322,9 @@ class IssueStore:
             "fingerprint": issue["fingerprint"],
             "exception_type": issue.get("exception_type"),
             "message": issue["message"],
+            "known_tag": issue.get("known_tag"),
+            "known_spec": issue.get("known_spec"),
+            "known_title": issue.get("known_title"),
             "count": issue["count"],
             "first_seen": issue["first_seen"],
             "last_seen": issue["last_seen"],
@@ -299,12 +374,19 @@ server = MCPServer(
 # The MCP tools (for AI agents) and the REST routes (for plain HTTP clients)
 # both call these, so the two read interfaces can never drift apart.
 
-def _list_issues(severity: str | None = None, limit: int = 50) -> list[dict]:
+def _list_issues(severity: str | None = None, limit: int = 50,
+                 known: bool | None = None) -> list[dict]:
     items = list(store.issues.values())
     if severity:
         items = [i for i in items if i["severity"].upper() == severity.upper()]
+    if known is not None:
+        items = [i for i in items if bool(i.get("known_tag")) == known]
     items.sort(key=lambda i: i["last_seen"], reverse=True)
-    fields = ("fingerprint", "severity", "service_name", "exception_type", "message", "count", "first_seen", "last_seen")
+    fields = (
+        "fingerprint", "severity", "service_name", "exception_type", "message",
+        "known_tag", "known_spec", "known_title",
+        "count", "first_seen", "last_seen",
+    )
     return [{k: i.get(k) for k in fields} for i in items[:limit]]
 
 
@@ -320,15 +402,19 @@ def _get_stats() -> dict:
     by_severity: dict[str, int] = {}
     total_occurrences = 0
     services: set[str] = set()
+    known_specs: dict[str, int] = {}
     for i in items:
         by_severity[i["severity"]] = by_severity.get(i["severity"], 0) + 1
         total_occurrences += i["count"]
         services.add(i["service_name"])
+        if i.get("known_spec"):
+            known_specs[i["known_spec"]] = known_specs.get(i["known_spec"], 0) + 1
     return {
         "total_issues": len(items),
         "issues_by_severity": by_severity,
         "total_occurrences": total_occurrences,
         "services_seen": sorted(services),
+        "known_seeded_issues": known_specs,
     }
 
 
@@ -359,14 +445,15 @@ def _list_recent_occurrences(minutes: int = 60, severity: str | None = None) -> 
 # --- MCP tools (AI agents, over Streamable-HTTP at /mcp) ------------------
 
 @server.tool()
-def list_issues(severity: str | None = None, limit: int = 50) -> list[dict]:
+def list_issues(severity: str | None = None, limit: int = 50, known: bool | None = None) -> list[dict]:
     """List tracked issues (deduplicated warning/error signatures), most recently seen first.
 
     Args:
         severity: optional filter, "WARN" or "ERROR".
         limit: max number of issues to return.
+        known: optional filter - true: only known/seeded signatures, false: only unknown ones.
     """
-    return _list_issues(severity, limit)
+    return _list_issues(severity, limit, known)
 
 
 @server.tool()
@@ -470,14 +557,27 @@ def _int_param(request: Request, name: str, default: int) -> int:
         raise ValueError(f"query parameter '{name}' must be an integer, got {raw!r}")
 
 
+def _bool_param(request: Request, name: str) -> bool | None:
+    raw = request.query_params.get(name)
+    if raw is None:
+        return None
+    lowered = raw.strip().lower()
+    if lowered in ("true", "1", "yes"):
+        return True
+    if lowered in ("false", "0", "no"):
+        return False
+    raise ValueError(f"query parameter '{name}' must be a boolean, got {raw!r}")
+
+
 @server.custom_route("/issues", methods=["GET"])
 async def rest_list_issues(request: Request) -> Response:
-    """GET /issues?severity=WARN|ERROR&limit=N  -> deduplicated issue list."""
+    """GET /issues?severity=WARN|ERROR&limit=N&known=true|false  -> deduplicated issue list."""
     try:
         limit = _int_param(request, "limit", 50)
+        known = _bool_param(request, "known")
     except ValueError as e:
         return JSONResponse({"error": str(e)}, status_code=400)
-    return JSONResponse(_list_issues(request.query_params.get("severity"), limit))
+    return JSONResponse(_list_issues(request.query_params.get("severity"), limit, known))
 
 
 @server.custom_route("/issues/{fingerprint}", methods=["GET"])

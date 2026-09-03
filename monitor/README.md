@@ -67,6 +67,36 @@ tracked as its own issue, which in practice gives you both a
 "summary" line and the full exception detail with stack trace, without
 losing either.
 
+**Known (seeded) signature tagging**: some Error-level lines in this stack
+are deliberate, spec-mandated signals rather than regressions. The strongest
+case is the seeded unpublished-detail `NullReferenceException` in Catalog.Api:
+`spec-0be21a` (lifecycle 'agreed') requires that log line to keep flowing as
+the log-pillar component of the seeded incident, so it must **not** be
+remediated. Instead the monitor tags it, so anything reading the feed sees
+"this is the known seeded incident", not a new break.
+
+A signature matches when the service name starts with `service`, the
+exception type equals `exception_type`, and the raw message contains
+`message_contains` — first match wins. Matching happens once, at issue
+creation, and is persisted into the issue file
+(`known_tag`, `known_spec`, `known_title`, `known_note`), so it survives
+restarts. Files recorded before this tagging existed are backfilled with the
+same fields the first time they're loaded. The tag rides on:
+
+- `GET /issues` and the `list_issues` MCP tool — the `known_tag` /
+  `known_spec` / `known_title` fields are in every row, and both interfaces
+  accept a `known=true|false` filter (true: only known/seeded signatures,
+  false: only unknown ones).
+- `GET /issues/{fingerprint}` and `get_issue` — full detail, including
+  `known_note`, which explains *why* the line must keep firing.
+- `GET /stats` and `get_stats` — a `known_seeded_issues` map of
+  `{spec: issue count}`.
+- the webhook payload — `known_tag` / `known_spec` / `known_title` on both
+  `new_issue` and `repeat_occurrence` events.
+
+The seeded signatures live in `KNOWN_SIGNATURES` at the top of `monitor.py`;
+add an entry there when a new intentional signal is agreed.
+
 **Storage layout**:
 ```
 data/
@@ -76,8 +106,9 @@ data/
     <fingerprint>.json
 ```
 Each file: `fingerprint`, `severity`, `service_name`, `exception_type`,
-`scope_name`, `message`, `sample_stack_trace`, `first_seen`, `last_seen`,
-`count`, `occurrences: [{timestamp, trace_id, span_id, request_path}, ...]`.
+`scope_name`, `message`, `sample_stack_trace`, `known_tag`, `known_spec`,
+`known_title`, `known_note`, `first_seen`, `last_seen`, `count`,
+`occurrences: [{timestamp, trace_id, span_id, request_path}, ...]`.
 `trace_id`/`span_id` match Tempo's IDs exactly, so you can jump from an
 issue straight to its trace.
 
@@ -89,25 +120,28 @@ repeat occurrence fires an HTTP POST:
   "severity": "ERROR",
   "service_name": "catalog.service",
   "fingerprint": "95166b8e2d1a6bf9",
-  "exception_type": "System.DivideByZeroException",
-  "message": "Attempted to divide by zero.",
+  "exception_type": "System.NullReferenceException",
+  "message": "Object reference not set to an instance of an object.",
+  "known_tag": "seeded",
+  "known_spec": "spec-0be21a",
+  "known_title": "Unpublished product detail view NullReferenceException",
   "count": 1,
   "first_seen": "...", "last_seen": "...",
-  "occurrence": { "timestamp": "...", "trace_id": "...", "span_id": "...", "request_path": "/admin/products/all" }
+  "occurrence": { "timestamp": "...", "trace_id": "...", "span_id": "...", "request_path": "/admin/products/detail/42" }
 }
 ```
 
 **MCP tools** (served at `http://<host>:7003/mcp`, Streamable HTTP transport):
-- `list_issues(severity?, limit=50)` — deduplicated issue summaries, most recent first
-- `get_issue(fingerprint)` — full detail incl. stack trace and every occurrence
-- `get_stats()` — counts by severity, total occurrences, services seen
+- `list_issues(severity?, limit=50, known?)` — deduplicated issue summaries, most recent first; `known=true` restricts to known/seeded signatures, `known=false` to unknown ones
+- `get_issue(fingerprint)` — full detail incl. stack trace, every occurrence, and the known-signature note if it matches one
+- `get_stats()` — counts by severity, total occurrences, services seen, known-seeded issue counts by spec
 - `list_recent_occurrences(minutes=60, severity?)` — flat, non-deduplicated feed for "what just happened"
 
 **REST read API** (same data, for plain HTTP clients — dashboards, `curl`,
 non-agent services — served at `http://<host>:7003`):
-- `GET /issues?severity=WARN|ERROR&limit=50` — deduplicated issue summaries
+- `GET /issues?severity=WARN|ERROR&limit=50&known=true|false` — deduplicated issue summaries
 - `GET /issues/{fingerprint}` — full detail for one issue (404 if unknown)
-- `GET /stats` — counts by severity, total occurrences, services seen
+- `GET /stats` — counts by severity, total occurrences, services seen, known-seeded issue counts by spec
 - `GET /occurrences?minutes=60&severity=WARN|ERROR` — flat recent-occurrence feed
 
 The MCP tools and the REST routes call the same shared read helpers, so the
