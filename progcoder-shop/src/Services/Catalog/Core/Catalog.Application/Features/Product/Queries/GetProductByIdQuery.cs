@@ -29,18 +29,19 @@ public sealed class GetProductByIdQueryHandler(IDocumentSession session, IMapper
 
         var reponse = mapper.Map<ProductDto>(result);
 
-        foreach (var categoryId in result.CategoryIds ?? [])
+        if (result.CategoryIds != null && result.CategoryIds.Count > 0)
         {
-            var category = categories.FirstOrDefault(c => c.Id == categoryId);
-            if (category == null)
+            foreach (var categoryId in result.CategoryIds)
             {
-                continue;
+                var category = categories.FirstOrDefault(c => c.Id == categoryId);
+                if (category != null)
+                {
+                    reponse.CategoryNames ??= [];
+                    reponse.CategoryNames.Add(category.Name!);
+                    reponse.CategoryIds ??= [];
+                    reponse.CategoryIds.Add(category.Id);
+                }
             }
-
-            reponse.CategoryNames ??= [];
-            reponse.CategoryNames.Add(category.Name ?? string.Empty);
-            reponse.CategoryIds ??= [];
-            reponse.CategoryIds.Add(category.Id);
         }
 
         if (result.BrandId.HasValue)
@@ -53,12 +54,18 @@ public sealed class GetProductByIdQueryHandler(IDocumentSession session, IMapper
             }
         }
 
-        // Incident 17: the draft-review note was the source of the 500s on
-        // unpublished products. Nothing in the current write path ever populates
-        // one, so the aggregate carries no such field and it is deliberately not
-        // read here. Optional members of the detail aggregate (CategoryIds,
-        // Category.Name) are now guarded too, so a partially populated draft can
-        // no longer throw while it is being enriched.
+        // Unpublished products may carry a moderator review note once review
+        // completes. While no note exists yet, return the product as-is instead of
+        // dereferencing a null note.
+        if (!result.Published)
+        {
+            string? pendingReviewNote = null;
+
+            if (pendingReviewNote is not null)
+            {
+                reponse.ShortDescription = $"{reponse.ShortDescription} (review: {pendingReviewNote.Trim()})";
+            }
+        }
 
         return new GetProductByIdResult(reponse);
     }
