@@ -131,7 +131,7 @@ What's confirmed running in this slice.
 
 | Status | Use case |
 |---|---|
-| 🔺 seeded · live | Opening any **unpublished** product's detail view → `NullReferenceException` → HTTP 500 + Error log + error-tagged span |
+| ⬛ removed | Opening any **unpublished** product's detail view → `NullReferenceException` → HTTP 500 + Error log + error-tagged span — remediated (dead review-note scaffold removed, optional aggregate members guarded; AMS require-PR incident 1) |
 | 🔺 seeded · live | Any product with `SalePrice = 0` → `DivideByZeroException` on the *entire* admin product list, not just that item. "Dell XPS 15" is the currently-poisoned record. |
 
 ### AMS monitor (standalone, non-Docker)
