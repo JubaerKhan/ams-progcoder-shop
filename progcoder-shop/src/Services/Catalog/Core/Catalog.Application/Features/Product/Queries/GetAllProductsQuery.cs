@@ -77,18 +77,15 @@ public sealed class GetAllProductsQueryHandler(IDocumentSession session, IMapper
                     }
                 }
 
-                // Seeded defect (intentional - second AMS observability test case, see
-                // DEV-RUNBOOK.md "Seeded incidents"). SalePrice is optional and has no
-                // validation (see UpdateProductCommandValidator), so an admin can set it
-                // to 0 for a "100% off" clearance item. Computing the discount badge
-                // percentage then divides by that zero sale price, throwing
-                // DivideByZeroException for the whole product list, not just the one
-                // poisoned item.
-                if (item.SalePrice == 0)
-                {
-                    var discountPercentage = (item.Price - item.SalePrice.Value) / item.SalePrice.Value * 100;
-                    item.ShortDescription = $"{item.ShortDescription} (-{discountPercentage}% off)";
-                }
+                // Incident 2: the zero-sale-price discount badge was the source of the
+                // "Attempted to divide by zero." 500s on the admin product list.
+                // SalePrice is optional and deliberately has no validation rule
+                // (spec-ec3148: no non-negative check, no bound against Price, no
+                // exclusion of zero), so a zero sale price is legal data - and the
+                // percentage here divided by it, failing the whole list, not just the
+                // one poisoned item. The scaffold is deliberately not computed: no
+                // read path should throw over a discount badge on a legal zero
+                // sale price.
             }
         }
 

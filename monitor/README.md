@@ -75,6 +75,28 @@ the log-pillar component of the seeded incident, so it must **not** be
 remediated. Instead the monitor tags it, so anything reading the feed sees
 "this is the known seeded incident", not a new break.
 
+A seeded defect that has since been **fixed in code** is a different case,
+with a different tag: the divide-by-zero that used to fail the whole unpaged
+`GET /admin/products/all` when a product had `SalePrice = 0` (`spec-b604db`).
+The scaffold that threw it no longer exists, so the line firing again means
+the defect has resurfaced — a regression. It is tagged `seeded-remediated`,
+carrying the spec and a note explaining all of this, so a recurrence reads as
+"the known seeded defect back again", not as an unknown break. Two
+distinctions matter when adding an entry like this:
+
+- **Tag on the exception-bearing line, not the generic request line.** The
+  same failing request produces several log lines: the middleware's
+  `HTTP GET /admin/products/all -> 500 in <num> ms`, the framework's
+  `UnhandledException` diagnostic, and the exception handler's own log. Only
+  the ones carrying `System.DivideByZeroException` are tagged — the generic
+  request line names no cause, so tagging it would mark *every* future 500 on
+  that route "known" and hide real regressions.
+- **`seeded` vs `seeded-remediated`**: `seeded` means "intentional, do not
+  remediate" (the signal is the point); `seeded-remediated` means "was
+  intentional, is now fixed — firing again is a regression". Both surface
+  everywhere the tag rides (see below), so `known=true` still finds them and
+  `known=false` still excludes them.
+
 A signature matches when the service name starts with `service`, the
 exception type equals `exception_type`, and the raw message contains
 `message_contains` — first match wins. Matching happens once, at issue

@@ -131,8 +131,8 @@ What's confirmed running in this slice.
 
 | Status | Use case |
 |---|---|
-| 🔺 seeded · live | Opening any **unpublished** product's detail view → `NullReferenceException` → HTTP 500 + Error log + error-tagged span |
-| 🔺 seeded · live | Any product with `SalePrice = 0` → `DivideByZeroException` on the *entire* admin product list, not just that item. "Dell XPS 15" is the currently-poisoned record. |
+| ⬛ removed | Opening any **unpublished** product's detail view → `NullReferenceException` → HTTP 500 + Error log + error-tagged span — remediated (dead review-note scaffold removed, optional aggregate members guarded; AMS require-PR incident 1) |
+| ⬛ removed | Any product with `SalePrice = 0` → `DivideByZeroException` on the *entire* admin product list, not just that item. "Dell XPS 15" is the currently-poisoned record. — remediated (zero-sale-price discount-badge scaffold removed from the list query; a zero sale price is legal data, so no read path throws over it; AMS require-PR incident 2) and annotated in the monitor (`seeded-remediated` tag on the `DivideByZeroException` signature, `../monitor/README.md`; a recurrence now reads as the known defect resurfacing — a regression — rather than an unknown break) |
 
 ### AMS monitor (standalone, non-Docker)
 
