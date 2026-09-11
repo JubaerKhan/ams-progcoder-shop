@@ -175,6 +175,19 @@ def normalize_for_fingerprint(message: str) -> str:
 # the logging/alerting pipeline, so agents and humans reading /issues or the
 # webhook feed see "this is the known seeded incident", not a new break.
 #
+# A second, different case is a seeded defect that HAS since been remediated in
+# code: the divide-by-zero on the unpaged admin product list (spec-b604db,
+# dispute resolved in favour of fixing it). Its exception line is tagged
+# 'seeded-remediated' so any recurrence is read as the known defect resurfacing
+# rather than an unknown break - and as a regression, since the scaffold that
+# produced it no longer exists.
+#
+# Deliberately NOT tagged: the generic request-logging "HTTP GET /admin/products/
+# all -> 500 in <num> ms" line. It carries no exception type and names no cause,
+# so tagging it would mark every future 500 on that route as "known" and hide
+# real regressions. The exception-bearing lines (which fire alongside it for the
+# same request) are where the annotation belongs.
+#
 # A signature matches when service_name starts with `service`, exception_type
 # equals `exception_type` (when given), and the (raw) message contains
 # `message_contains`. First match wins.
@@ -192,6 +205,27 @@ KNOWN_SIGNATURES: tuple[dict, ...] = (
         "service": "catalog.service",
         "exception_type": "System.NullReferenceException",
         "message_contains": "Object reference not set to an instance of an object",
+    },
+    {
+        "tag": "seeded-remediated",
+        "spec": "spec-b604db",
+        "title": "Zero sale-price DivideByZeroException on the unpaged admin product list",
+        "note": (
+            "Known seeded defect governed by spec-b604db: a product with "
+            "SalePrice = 0 made GetAllProductsQuery divide by zero and fail the "
+            "whole GET /admin/products/all response. The defect itself is "
+            "REMOVED in code (AMS require-PR incident 2, the zero-sale-price "
+            "discount-badge scaffold no longer exists), and remediation was "
+            "accepted over the spec's original no-fix ruling (decisions "
+            "dec-af326c and dec-5547a1; spec-b604db now disputed). This line "
+            "can only fire again if the scaffold returns, so treat a new "
+            "occurrence as a regression, not as the expected signal - but it "
+            "still carries the tag so it reads as the known defect resurfacing "
+            "rather than an unknown break."
+        ),
+        "service": "catalog.service",
+        "exception_type": "System.DivideByZeroException",
+        "message_contains": "Attempted to divide by zero",
     },
 )
 
