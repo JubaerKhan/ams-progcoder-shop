@@ -1,0 +1,142 @@
+# A read-only diagnostic runbook for the Catalog service.
+#
+# It answers one operational question: are the known defect signatures still
+# present in the source this branch would deploy? An operator runs it before a
+# deploy, after a deploy, or when an incident points at the Catalog service.
+#
+# It changes nothing. It checks out the branch, reads two source files, and
+# reports what it found. There is no step here that writes to the application,
+# the database or the deploy target, and that is deliberate: this file is the
+# procedure, and a reviewer of this repository decides what it may do.
+#
+# AMS may be configured to start this workflow and read how it ended. AMS does
+# not send commands over that channel and cannot change what runs here. To
+# change the procedure, change this file in a pull request.
+name: Catalog diagnostics
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: Which service to inspect.
+        type: choice
+        required: false
+        default: catalog
+        options:
+          - catalog
+      check:
+        description: Which checks to run.
+        type: choice
+        required: false
+        default: both
+        options:
+          - defect-signatures
+          - service-probe
+          - both
+      probe_url:
+        description: >-
+          Optional HTTP endpoint to probe. Leave empty to skip the probe. A
+          GitHub-hosted runner reaches public addresses only.
+        type: string
+        required: false
+        default: ""
+      fail_on_finding:
+        description: >-
+          Fail the run when a known defect signature is still present. Leave
+          false to report the finding without failing.
+        type: boolean
+        required: false
+        default: false
+      note:
+        description: Free text recorded in the log, for the operator's own record.
+        type: string
+        required: false
+        default: ""
+      ams_execution_id:
+        description: Correlation identifier supplied by the caller, recorded in the log.
+        type: string
+        required: false
+        default: ""
+
+# One diagnostic at a time per branch. Two runs reading the same branch is
+# harmless, but a single run makes the log easier to read afterwards.
+concurrency:
+  group: catalog-diagnostics-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  diagnose:
+    name: Diagnose the Catalog service
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the branch being diagnosed
+        uses: actions/checkout@v4
+
+      - name: Record the request
+        shell: bash
+        run: |
+          echo "service            = ${{ inputs.service }}"
+          echo "check              = ${{ inputs.check }}"
+          echo "probe_url          = ${{ inputs.probe_url }}"
+          echo "fail_on_finding    = ${{ inputs.fail_on_finding }}"
+          echo "note               = ${{ inputs.note }}"
+          echo "ams_execution_id   = ${{ inputs.ams_execution_id }}"
+          echo "ref                = ${{ github.ref_name }}"
+          echo "commit             = ${{ github.sha }}"
+
+      - name: Inspect the Catalog source for known defect signatures
+        id: signatures
+        if: ${{ inputs.check == 'defect-signatures' || inputs.check == 'both' }}
+        shell: bash
+        run: |
+          set -u
+          queries="progcoder-shop/src/Services/Catalog/Core/Catalog.Application/Features/Product/Queries"
+          findings=0
+
+          echo "== spec-0be21a: unpublished product detail NullReferenceException =="
+          if grep -nE 'pendingReviewNote\.Trim\(\)' "$queries/GetProductByIdQuery.cs"; then
+            echo "PRESENT: GetProductByIdQuery dereferences a note that is always null."
+            findings=$((findings + 1))
+          else
+            echo "ABSENT: no unguarded dereference of the review note."
+          fi
+
+          echo ""
+          echo "== spec-b604db: zero sale price DivideByZeroException =="
+          if grep -nE '/ item\.SalePrice\.Value' "$queries/GetAllProductsQuery.cs"; then
+            echo "PRESENT: GetAllProductsQuery divides by a sale price that may be zero."
+            findings=$((findings + 1))
+          else
+            echo "ABSENT: no division by the sale price."
+          fi
+
+          echo ""
+          echo "findings=$findings"
+          echo "findings=$findings" >> "$GITHUB_OUTPUT"
+
+          if [ "$findings" -gt 0 ] && [ "${{ inputs.fail_on_finding }}" = "true" ]; then
+            echo "Failing the run: $findings known defect signature(s) are still present."
+            exit 1
+          fi
+
+      - name: Probe the service endpoint
+        if: ${{ (inputs.check == 'service-probe' || inputs.check == 'both') && inputs.probe_url != '' }}
+        shell: bash
+        run: |
+          set -u
+          url="${{ inputs.probe_url }}"
+          echo "Probing $url"
+          code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "$url" || echo "000")
+          echo "HTTP $code"
+          if [ "$code" = "000" ]; then
+            echo "The runner could not reach $url. A GitHub-hosted runner reaches public addresses only."
+            exit 1
+          fi
+
+      - name: Report the result
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          echo "Catalog diagnostics finished on ${{ github.ref_name }} at ${{ github.sha }}."
+          echo "defect signatures found: ${{ steps.signatures.outputs.findings || 'not checked' }}"
+          echo "This procedure changed nothing."
