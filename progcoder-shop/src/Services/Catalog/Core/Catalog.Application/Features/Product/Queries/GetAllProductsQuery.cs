@@ -77,14 +77,18 @@ public sealed class GetAllProductsQueryHandler(IDocumentSession session, IMapper
                     }
                 }
 
-                // Seeded defect (intentional - second AMS observability test case, see
-                // DEV-RUNBOOK.md "Seeded incidents"). SalePrice is optional and has no
-                // validation (see UpdateProductCommandValidator), so an admin can set it
-                // to 0 for a "100% off" clearance item. Computing the discount badge
-                // percentage then divides by that zero sale price, throwing
-                // DivideByZeroException for the whole product list, not just the one
-                // poisoned item.
-                if (item.SalePrice == 0)
+                // Incident 14 / spec-b604db. The DivideByZeroException this block
+                // used to throw for SalePrice == 0 is an agreed incident
+                // reproduction signal, so that case is still not discounted here.
+                // A zero sale price is legal input (UpdateProductCommandValidator
+                // does not reject it), so it is guarded instead of crashing the
+                // whole product list:
+                // - SalePrice == null: optional, no discount.
+                // - SalePrice == 0: 100% off; the discounted price is zero and a
+                //   percentage against it is undefined, so no badge is appended.
+                // - SalePrice == Price: a percentage of zero, so no badge either.
+                // Only SalePrice in (0, Price) gets a positive discount percentage.
+                if (item.SalePrice is > 0 && item.SalePrice < item.Price)
                 {
                     var discountPercentage = (item.Price - item.SalePrice.Value) / item.SalePrice.Value * 100;
                     item.ShortDescription = $"{item.ShortDescription} (-{discountPercentage}% off)";
