@@ -1,0 +1,64 @@
+# Linux + LAN adaptations, applied on top of docker-compose.yml.
+#
+# The base file was written for Docker Desktop on a workstation, where every
+# browser-facing URL is "localhost" and the monitor runs outside Docker. On
+# this server the browser is on another machine, so those URLs must name the
+# server, and the monitor runs as a container on the shared network.
+#
+# COMPOSE_FILE in .env loads this file automatically, so plain
+# `docker compose up -d` in this directory applies both files.
+
+services:
+
+  # The monitor, now a Linux container on progcoder_network.
+  monitor:
+    build:
+      context: ../monitor
+    image: progcoder-shop/monitor:latest
+    container_name: monitor
+    restart: unless-stopped
+    environment:
+      MONITOR_HOST: 0.0.0.0
+      MONITOR_PORT: "7787"
+      MONITOR_DATA_DIR: /data
+      MONITOR_MAX_OCCURRENCES: ${MONITOR_MAX_OCCURRENCES:-100}
+      MONITOR_WEBHOOK_URL: ${MONITOR_WEBHOOK_URL:-}
+      MONITOR_API_KEY: ${MONITOR_API_KEY}
+    volumes:
+      - monitor-data:/data
+    ports:
+      - ${MONITOR_PORT:-7787}:7787
+    networks:
+      - progcoder_network
+
+  # The collector reaches the monitor by service name on the shared network.
+  otel-collector:
+    environment:
+      MONITOR_ENDPOINT: ${MONITOR_ENDPOINT:-http://monitor:7787}
+
+  # Keycloak must issue tokens for the address the browser actually used.
+  keycloak:
+    environment:
+      KC_HOSTNAME: ${LAN_HOST}
+
+  # Product image URLs handed to the browser must name the server, not the
+  # container network and not localhost.
+  catalog-api:
+    environment:
+      MinIO__PublicEndpoint: ${LAN_HOST}:${MINIO_API_PORT}
+      CorsConfig__Domains__1: http://${LAN_HOST}:${APP_ADMIN_PORT}
+
+  # The redirect URI is baked into the SPA at build time.
+  app-admin:
+    build:
+      args:
+        VITE_KEYCLOAK_REDIRECT_URI: http://${LAN_HOST}:${APP_ADMIN_PORT}/
+
+  # The database needs no LAN exposure. Nothing in the stack reaches it over
+  # the host port; it is published only so a developer can attach locally.
+  postgres-sql:
+    ports: !override
+      - 127.0.0.1:${POSTGRES_PORT}:5432
+
+volumes:
+  monitor-data:

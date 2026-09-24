@@ -22,12 +22,36 @@ concurrency:
 jobs:
   deploy:
     runs-on: self-hosted
+    env:
+      # The stack that runs on this server. Its .env and its docker-volumes/
+      # data live here and are not in the repository, so the deploy updates
+      # this folder in place instead of checking out a copy of its own.
+      STACK_DIR: /home/bjit/progcoder-monitor
     steps:
-      - name: Check out the branch being deployed
-        uses: actions/checkout@v4
-
-      - name: Deploy
-        working-directory: progcoder-shop
+      # Not actions/checkout: in a folder that holds data it is unsafe. It runs
+      # `git clean -ffdx`, which deletes the ignored .env and docker-volumes/,
+      # and it empties the whole folder when a step of its preparation fails.
+      - name: Update the stack to the branch being deployed
         shell: bash
         run: |
-          docker compose -f docker-compose.yml up --build -d
+          set -euo pipefail
+          cd "$STACK_DIR"
+          git fetch --no-tags origin "$GITHUB_REF"
+          git checkout --force --detach FETCH_HEAD
+          git log -1 --oneline
+
+      - name: Deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$STACK_DIR/progcoder-shop"
+          # Without .env, Compose would still start -- with docker-compose.yml
+          # alone, under the same project name, over the running stack.
+          if [ ! -f .env ]; then
+            echo "::error::No .env in $STACK_DIR/progcoder-shop. Create it from .env.sample first."
+            exit 1
+          fi
+          # No -f: COMPOSE_FILE and COMPOSE_PROJECT_NAME in .env choose both
+          # Compose files and the project, so this replaces the running containers.
+          docker compose up --build -d
+          docker compose ps
