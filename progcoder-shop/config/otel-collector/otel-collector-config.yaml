@@ -25,13 +25,15 @@ exporters:
     tls:
       insecure: true
 
-  # Standalone AMS monitor (see ../../../monitor) - runs on the host, not in Docker,
-  # so it's reached via host.docker.internal. Duplicates the same log stream
-  # Loki gets; the monitor itself decides what's worth keeping (WARN+).
+  # Standalone AMS monitor (see ../../../monitor). Duplicates the same log
+  # stream Loki gets; the monitor itself decides what's worth keeping (WARN+).
+  # On Docker Desktop it runs on the host, reached via host.docker.internal.
+  # On the Linux server docker-compose.linux.yml runs it as a container on
+  # progcoder_network and sets MONITOR_ENDPOINT to http://monitor:7787.
   otlphttp/monitor:
     # otlphttp appends the signal-specific suffix itself, so this becomes
-    # http://host.docker.internal:7003/v1/logs - matching monitor.py's route.
-    endpoint: "http://host.docker.internal:7003"
+    # <endpoint>/v1/logs - matching monitor.py's route.
+    endpoint: "${env:MONITOR_ENDPOINT:-http://host.docker.internal:7003}"
     encoding: json
     compression: none
     headers:
