@@ -23,7 +23,9 @@
 **/values.dev.yaml
 LICENSE
 README.md
-!**/.gitignore
+# No `!**/.gitignore` here: an exception that can match anywhere makes the
+# builder open every ignored folder to look for it, and docker-volumes/
+# holds data folders the build user cannot read ("permission denied").
 !.git/HEAD
 !.git/config
 !.git/packed-refs
